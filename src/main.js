@@ -1,14 +1,11 @@
 
 import './style.css';
 import { gapiLoaded, gisLoaded, handleAuthClick, listBloombergEmails, getEmailDetails, markAsRead } from './gmail.js';
-import { translateWithGemini } from './translate.js';
+
 
 // Configuration State
 const STATE = {
   clientId: localStorage.getItem('bloomberg_client_id') || '',
-  geminiKey: localStorage.getItem('bloomberg_gemini_key') || '',
-  // Default to what we hardcoded, but allow override
-  geminiModel: localStorage.getItem('bloomberg_gemini_model') || 'gemini-1.5-flash-latest',
   nextPageToken: null,
   isLoading: false,
   emails: []
@@ -32,17 +29,11 @@ function showSettingsModal() {
   overlay.innerHTML = `
     <div style="background: #161b22; padding: 24px; border-radius: 12px; max-width: 90%; width: 400px; border: 1px solid #30363d;">
       <h2 style="margin-top:0">Setup</h2>
-      <p style="color:#8b949e; font-size: 14px;">Enter your API credentials.</p>
+      <p style="color:#8b949e; font-size: 14px;">Enter your OAuth Client ID.</p>
       
       <label style="display:block; margin-bottom:8px; font-size:12px;">Google OAuth Client ID</label>
-      <input type="text" id="inp-client-id" value="${STATE.clientId}" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:white; border-radius:6px; margin-bottom:16px;">
+      <input type="text" id="inp-client-id" value="${STATE.clientId}" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:white; border-radius:6px; margin-bottom:24px;">
       
-      <label style="display:block; margin-bottom:8px; font-size:12px;">Gemini API Key</label>
-      <input type="password" id="inp-gemini-key" value="${STATE.geminiKey}" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:white; border-radius:6px; margin-bottom:16px;">
-      
-      <label style="display:block; margin-bottom:8px; font-size:12px;">Gemini Model (Optional)</label>
-      <input type="text" id="inp-gemini-model" value="${STATE.geminiModel}" placeholder="gemini-1.5-flash-latest" style="width:100%; padding:8px; background:#0d1117; border:1px solid #30363d; color:white; border-radius:6px; margin-bottom:24px;">
-
       <button id="save-settings" style="width:100%; padding:10px; background:#238636; border:none; color:white; border-radius:6px; cursor:pointer;">Save & Start</button>
     </div>
   `;
@@ -51,20 +42,14 @@ function showSettingsModal() {
 
   document.getElementById('save-settings').onclick = () => {
     const cid = document.getElementById('inp-client-id').value.trim();
-    const gkey = document.getElementById('inp-gemini-key').value.trim();
-    const gmodel = document.getElementById('inp-gemini-model').value.trim() || 'gemini-1.5-flash-latest';
 
-    if (cid && gkey) {
+    if (cid) {
       localStorage.setItem('bloomberg_client_id', cid);
-      localStorage.setItem('bloomberg_gemini_key', gkey);
-      localStorage.setItem('bloomberg_gemini_model', gmodel);
       STATE.clientId = cid;
-      STATE.geminiKey = gkey;
-      STATE.geminiModel = gmodel;
       overlay.remove();
       initApp();
     } else {
-      alert("Both keys are required.");
+      alert("Client ID is required.");
     }
   };
 }
@@ -176,59 +161,39 @@ async function renderEmail(msgDetails) {
     card.className = `email-card ${isUnread ? 'unread' : ''}`;
     card.id = `card-${msgDetails.id}`;
 
-    // Initial Loading UI
+    // Render
     card.innerHTML = `
         <div class="card-meta">
           <span>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
           <span>${from.split('<')[0]}</span>
         </div>
         <div class="card-title">${subject}</div>
-        <div class="card-body translating-state" style="color:#8b949e; font-style:italic;">
-          Running Gemini Translation...
-        </div>
-        <div class="original-text"></div>
+        <div class="email-content-view"></div>
         <div class="card-actions">
-           <button class="btn-text toggle-original">Show Original</button>
            ${isUnread ? `<button class="btn-text mark-read" data-id="${msgDetails.id}">Mark as Read</button>` : ''}
         </div>
       `;
 
-    // Set HTML safely (relatively speaking)
-    card.querySelector('.original-text').innerHTML = bodyHtml;
+    // Inject HTML safely
+    // We use a shadow root or just direct injection? pure injection is fine for user's own emails usually.
+    // But style isolation is better. For now direct injection but with overflow handling.
+    const contentDiv = card.querySelector('.email-content-view');
+    contentDiv.innerHTML = bodyHtml;
+
+    // Basic style reset for the email content to not break dark mode completely, or keep as is?
+    // Usually users want original look. We leave it as is, but background might need white if email expects it.
+    // Force white background for email content?
+    contentDiv.style.backgroundColor = '#ffffff';
+    contentDiv.style.color = '#000000';
+    contentDiv.style.padding = '10px';
+    contentDiv.style.borderRadius = '4px';
+    contentDiv.style.overflowX = 'auto';
 
     streamContainer.appendChild(card);
 
-    // Trigger Translation
-    // Limit text length more aggressively if needed, but 2000 is usually fine.
-    const textToTranslate = bodyText.substring(0, 3000);
-    const translation = await translateWithGemini(textToTranslate, STATE.geminiKey, STATE.geminiModel);
+    // No translation calls
 
-    // Update UI with translation
-    const bodyEl = card.querySelector('.card-body');
-    const toggleBtn = card.querySelector('.toggle-original');
-    const origEl = card.querySelector('.original-text');
-
-    bodyEl.classList.remove('translating-state');
-
-    if (translation.includes("Error")) {
-      bodyEl.style.color = '#ff7b72'; // Reddish for error
-      bodyEl.textContent = translation;
-      // Auto-show original on error
-      origEl.classList.add('visible');
-      toggleBtn.textContent = 'Hide Original';
-      logToScreen(`Translation error for ${msgDetails.id}: ${translation}`, 'error');
-    } else {
-      bodyEl.style.color = 'var(--text-primary)';
-      bodyEl.style.fontStyle = 'normal';
-      bodyEl.textContent = translation;
-    }
-
-    // Event Listeners
-    toggleBtn.onclick = () => {
-      origEl.classList.toggle('visible');
-      toggleBtn.textContent = origEl.classList.contains('visible') ? 'Hide Original' : 'Show Original';
-    };
-
+    // Mark as Read Listener
     const readBtn = card.querySelector('.mark-read');
     if (readBtn) {
       readBtn.onclick = async (e) => {

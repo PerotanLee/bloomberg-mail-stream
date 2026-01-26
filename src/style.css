@@ -43,12 +43,13 @@ body {
 
 /* Container */
 .stream-container {
-  padding: 16px;
-  max-width: 600px;
+  padding: 10px;
+  max-width: 900px;
+  /* Increased from 600px */
   margin: 0 auto;
   min-height: 100vh;
-  padding-bottom: 80px;
-  /* Space for FAB */
+  padding-bottom: 100px;
+  /* Space for FAB and Debug */
 }
 
 /* Email Card */
@@ -56,11 +57,13 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px;
   margin-bottom: 16px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
+  overflow-x: auto;
+  /* Allow scrolling if email is very wide */
 }
 
 .email-card.unread {
