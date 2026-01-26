@@ -62,36 +62,57 @@ function showSettingsModal() {
 }
 
 // --- Email Processing ---
-function decodeHtml(html) {
-  const txt = document.createElement('textarea');
-  txt.innerHTML = html;
-  return txt.value;
+function decodeUrlSafeBase64(data) {
+  const customAtob = (str) => {
+    try {
+      return decodeURIComponent(escape(window.atob(str)));
+    } catch {
+      return window.atob(str);
+    }
+  };
+  return customAtob(data.replace(/-/g, '+').replace(/_/g, '/'));
 }
 
 function extractBody(payload) {
-  let body = '';
-  // Simple DFS for body
-  const parts = [payload];
-  while (parts.length > 0) {
-    const part = parts.shift();
-    if (part.mimeType === 'text/plain' && part.body.data) {
-      body = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-      break;
-    } else if (part.mimeType === 'text/html' && part.body.data) {
-      // Prefer text plain if available, but html works
-      const html = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-      // Strip tags for summary/translation source
-      body = html.replace(/<[^>]*>?/gm, '');
-    }
+  let textBody = '';
+  let htmlBody = '';
 
-    if (part.parts) {
-      parts.push(...part.parts);
+  const traverse = (nodes) => {
+    for (const node of nodes) {
+      if (node.mimeType === 'text/plain' && node.body && node.body.data) {
+        textBody += decodeUrlSafeBase64(node.body.data);
+      } else if (node.mimeType === 'text/html' && node.body && node.body.data) {
+        htmlBody += decodeUrlSafeBase64(node.body.data);
+      } else if (node.parts) {
+        traverse(node.parts);
+      }
+    }
+  };
+
+  if (payload.parts) {
+    traverse(payload.parts);
+  } else {
+    // Single part message
+    if (payload.body && payload.body.data) {
+      if (payload.mimeType === 'text/html') htmlBody = decodeUrlSafeBase64(payload.body.data);
+      else textBody = decodeUrlSafeBase64(payload.body.data);
     }
   }
-  return body || payload.snippet; // Fallback to snippet
+
+  // Prefer text, fallback to stripped HTML
+  let finalBody = textBody;
+  if (!finalBody && htmlBody) {
+    // Strip tags
+    const tmp = document.createElement('div');
+    tmp.innerHTML = htmlBody;
+    finalBody = tmp.textContent || tmp.innerText || "";
+  }
+
+  return finalBody.trim() || payload.snippet || "(No body content found)";
 }
 
 function getHeader(headers, name) {
+  if (!headers) return '';
   const h = headers.find(x => x.name === name);
   return h ? h.value : '';
 }
@@ -99,7 +120,8 @@ function getHeader(headers, name) {
 async function renderEmail(msgDetails) {
   const subject = getHeader(msgDetails.payload.headers, 'Subject');
   const from = getHeader(msgDetails.payload.headers, 'From');
-  const date = new Date(parseInt(msgDetails.internalDate));
+  const dateStr = getHeader(msgDetails.payload.headers, 'Date') || msgDetails.internalDate;
+  const date = new Date(parseInt(msgDetails.internalDate) || dateStr);
   const isUnread = msgDetails.labelIds.includes('UNREAD');
   const bodyText = extractBody(msgDetails.payload);
 
@@ -118,33 +140,43 @@ async function renderEmail(msgDetails) {
     <div class="card-body translating-state" style="color:#8b949e; font-style:italic;">
       Running Gemini Translation...
     </div>
-    <div class="original-text">${bodyText.substring(0, 500)}... (Original)</div>
+    <div class="original-text">${bodyText}</div>
     <div class="card-actions">
        <button class="btn-text toggle-original">Show Original</button>
        ${isUnread ? `<button class="btn-text mark-read" data-id="${msgDetails.id}">Mark as Read</button>` : ''}
     </div>
   `;
 
-  streamContainer.appendChild(card); // Append immediately to show skeleton
+  streamContainer.appendChild(card);
 
   // Trigger Translation
-  // Limit text length for translation to avoid token limits for minimal cost/latency
-  const textToTranslate = bodyText.substring(0, 2000);
+  // Limit text length more aggressively if needed, but 2000 is usually fine.
+  const textToTranslate = bodyText.substring(0, 3000);
   const translation = await translateWithGemini(textToTranslate, STATE.geminiKey);
 
   // Update UI with translation
   const bodyEl = card.querySelector('.card-body');
+  const toggleBtn = card.querySelector('.toggle-original');
+  const origEl = card.querySelector('.original-text');
+
   bodyEl.classList.remove('translating-state');
-  bodyEl.style.color = 'var(--text-primary)';
-  bodyEl.style.fontStyle = 'normal';
-  bodyEl.textContent = translation;
+
+  if (translation.includes("Error")) {
+    bodyEl.style.color = '#ff7b72'; // Reddish for error
+    bodyEl.textContent = translation;
+    // Auto-show original on error
+    origEl.classList.add('visible');
+    toggleBtn.textContent = 'Hide Original';
+  } else {
+    bodyEl.style.color = 'var(--text-primary)';
+    bodyEl.style.fontStyle = 'normal';
+    bodyEl.textContent = translation;
+  }
 
   // Event Listeners
-  const toggleBtn = card.querySelector('.toggle-original');
   toggleBtn.onclick = () => {
-    const orig = card.querySelector('.original-text');
-    orig.classList.toggle('visible');
-    toggleBtn.textContent = orig.classList.contains('visible') ? 'Hide Original' : 'Show Original';
+    origEl.classList.toggle('visible');
+    toggleBtn.textContent = origEl.classList.contains('visible') ? 'Hide Original' : 'Show Original';
   };
 
   const readBtn = card.querySelector('.mark-read');

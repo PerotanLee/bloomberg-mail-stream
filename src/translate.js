@@ -26,9 +26,15 @@ export async function translateWithGemini(text, apiKey) {
         });
 
         const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Translation failed";
+
+        if (data.error) {
+            console.error("Gemini API Error:", data.error);
+            return `Translation Error: ${data.error.message || data.error.status}`;
+        }
+
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Translation returned empty";
     } catch (e) {
-        console.error("Gemini Error:", e);
-        return "Translation Error";
+        console.error("Gemini Network/Format Error:", e);
+        return `Translation Network Error: ${e.message}`;
     }
 }
