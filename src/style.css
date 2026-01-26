@@ -57,13 +57,13 @@ body {
 .email-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 0;
+  border-radius: 8px;
   padding: 8px;
   margin-bottom: 12px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
-  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .email-card.unread {
@@ -100,18 +100,23 @@ body {
 .email-content-view {
   margin-top: 8px;
   font-size: 14px;
-  zoom: 1.5;
-  /* Phase 2: Content Zoom */
-  -moz-transform: scale(1.5);
-  /* Firefox compatibility */
+  zoom: 1.2;
+  /* Reduced from 1.5 to fit Fold 7 */
+  -moz-transform: scale(1.2);
   -moz-transform-origin: 0 0;
-  transform: scale(1.5);
+  transform: scale(1.2);
   transform-origin: 0 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
-/* Adjust nested tables in email content */
-.email-content-view table {
-  max-width: 100%;
+.email-content-view table,
+.email-content-view img,
+.email-content-view div {
+  max-width: 100% !important;
+  height: auto !important;
+  box-sizing: border-box !important;
 }
 
 /* Actions in Card */

@@ -249,11 +249,18 @@ async function initApp() {
     gisLoaded(STATE.clientId);
 
     authStatus.textContent = "";
-    const btn = document.createElement('button');
-    btn.textContent = 'Sign In / Connect';
-    btn.className = 'btn-text';
-    btn.onclick = window.handleGoogleAuth;
-    authStatus.appendChild(btn);
+
+    // Auto-login if token exists
+    const savedToken = localStorage.getItem('gmail_access_token');
+    if (savedToken) {
+      handleGoogleAuth();
+    } else {
+      const btn = document.createElement('button');
+      btn.textContent = 'Sign In / Connect';
+      btn.className = 'btn-text';
+      btn.onclick = window.handleGoogleAuth;
+      authStatus.appendChild(btn);
+    }
 
   } catch (e) {
     console.error(e);

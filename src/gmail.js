@@ -14,6 +14,13 @@ export function gapiLoaded() {
             discoveryDocs: [GMAIL_API_DISCOVERY_DOC],
         });
         gapiInited = true;
+
+        // Restore token if exists
+        const savedToken = localStorage.getItem('gmail_access_token');
+        if (savedToken) {
+            gapi.client.setToken(JSON.parse(savedToken));
+        }
+
         checkAuth();
     });
 }
@@ -27,6 +34,8 @@ export function gisLoaded(clientId, scope = SCOPES) {
             if (resp.error !== undefined) {
                 throw (resp);
             }
+            // Save token to localStorage
+            localStorage.setItem('gmail_access_token', JSON.stringify(resp));
             if (userCallback) userCallback();
         },
     });
@@ -40,10 +49,10 @@ function checkAuth() {
 
 export function handleAuthClick(callback) {
     userCallback = callback;
-    if (gapi.client.getToken() === null) {
-        // Prompt the user to select a Google Account and ask for consent to share their data
-        // when establishing a new session.
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+    const token = gapi.client.getToken();
+    if (token === null) {
+        // Try to see if we have a persisted session but no gapi token set
+        tokenClient.requestAccessToken({ prompt: '' });
     } else {
         // Skip display of account chooser and consent dialog for an existing session.
         tokenClient.requestAccessToken({ prompt: '' });
