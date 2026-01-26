@@ -61,13 +61,42 @@ function showSettingsModal() {
   };
 }
 
+// --- Debugging ---
+function createDebugConsole() {
+  if (document.getElementById('debug-console')) return;
+  const con = document.createElement('div');
+  con.id = 'debug-console';
+  document.body.appendChild(con);
+  logToScreen("Debug Console Initialized", "info");
+}
+
+function logToScreen(msg, type = 'info') {
+  console.log(`[${type.toUpperCase()}] ${msg}`); // Keep browser console
+  const con = document.getElementById('debug-console');
+  if (!con) return;
+
+  // Auto-scroll
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  con.appendChild(entry);
+  con.scrollTop = con.scrollHeight;
+}
+
+// Override global console for convenience (optional, but let's stick to explicit caching)
+window.onerror = function (msg, url, line) {
+  logToScreen(`Global Error: ${msg} @ ${line}`, 'error');
+};
+
 // --- Email Processing ---
 function decodeUrlSafeBase64(data) {
+  if (!data) return '';
   const customAtob = (str) => {
     try {
       return decodeURIComponent(escape(window.atob(str)));
-    } catch {
-      return window.atob(str);
+    } catch (e) {
+      console.warn("Base64 Decode Error", e);
+      return window.atob(str); // best effort
     }
   };
   return customAtob(data.replace(/-/g, '+').replace(/_/g, '/'));
@@ -76,6 +105,8 @@ function decodeUrlSafeBase64(data) {
 function extractBody(payload) {
   let textBody = '';
   let htmlBody = '';
+
+  logToScreen(`Extracting body for msg... Parts: ${payload.parts ? payload.parts.length : '0'}`, 'info');
 
   const traverse = (nodes) => {
     for (const node of nodes) {
@@ -108,7 +139,13 @@ function extractBody(payload) {
     finalBody = tmp.textContent || tmp.innerText || "";
   }
 
-  return finalBody.trim() || payload.snippet || "(No body content found)";
+  // Last resort: Snippet
+  if (!finalBody.trim()) {
+    logToScreen("Body empty, using snippet", 'warn');
+    return payload.snippet || "(No content)";
+  }
+
+  return finalBody.trim();
 }
 
 function getHeader(headers, name) {
@@ -118,77 +155,86 @@ function getHeader(headers, name) {
 }
 
 async function renderEmail(msgDetails) {
-  const subject = getHeader(msgDetails.payload.headers, 'Subject');
-  const from = getHeader(msgDetails.payload.headers, 'From');
-  const dateStr = getHeader(msgDetails.payload.headers, 'Date') || msgDetails.internalDate;
-  const date = new Date(parseInt(msgDetails.internalDate) || dateStr);
-  const isUnread = msgDetails.labelIds.includes('UNREAD');
-  const bodyText = extractBody(msgDetails.payload);
+  try {
+    const subject = getHeader(msgDetails.payload.headers, 'Subject');
+    const from = getHeader(msgDetails.payload.headers, 'From');
+    const dateStr = getHeader(msgDetails.payload.headers, 'Date') || msgDetails.internalDate;
+    const date = new Date(parseInt(msgDetails.internalDate) || dateStr);
+    const isUnread = msgDetails.labelIds.includes('UNREAD');
 
-  // Card Container
-  const card = document.createElement('div');
-  card.className = `email-card ${isUnread ? 'unread' : ''}`;
-  card.id = `card-${msgDetails.id}`;
+    logToScreen(`Rendering: ${subject}`, 'info');
 
-  // Initial Loading UI
-  card.innerHTML = `
-    <div class="card-meta">
-      <span>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
-      <span>${from.split('<')[0]}</span>
-    </div>
-    <div class="card-title">${subject}</div>
-    <div class="card-body translating-state" style="color:#8b949e; font-style:italic;">
-      Running Gemini Translation...
-    </div>
-    <div class="original-text">${bodyText}</div>
-    <div class="card-actions">
-       <button class="btn-text toggle-original">Show Original</button>
-       ${isUnread ? `<button class="btn-text mark-read" data-id="${msgDetails.id}">Mark as Read</button>` : ''}
-    </div>
-  `;
+    const bodyText = extractBody(msgDetails.payload);
 
-  streamContainer.appendChild(card);
+    // Card Container
+    const card = document.createElement('div');
+    card.className = `email-card ${isUnread ? 'unread' : ''}`;
+    card.id = `card-${msgDetails.id}`;
 
-  // Trigger Translation
-  // Limit text length more aggressively if needed, but 2000 is usually fine.
-  const textToTranslate = bodyText.substring(0, 3000);
-  const translation = await translateWithGemini(textToTranslate, STATE.geminiKey);
+    // Initial Loading UI
+    card.innerHTML = `
+        <div class="card-meta">
+          <span>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
+          <span>${from.split('<')[0]}</span>
+        </div>
+        <div class="card-title">${subject}</div>
+        <div class="card-body translating-state" style="color:#8b949e; font-style:italic;">
+          Running Gemini Translation...
+        </div>
+        <div class="original-text">${bodyText.substring(0, 1000)}...</div>
+        <div class="card-actions">
+           <button class="btn-text toggle-original">Show Original</button>
+           ${isUnread ? `<button class="btn-text mark-read" data-id="${msgDetails.id}">Mark as Read</button>` : ''}
+        </div>
+      `;
 
-  // Update UI with translation
-  const bodyEl = card.querySelector('.card-body');
-  const toggleBtn = card.querySelector('.toggle-original');
-  const origEl = card.querySelector('.original-text');
+    streamContainer.appendChild(card);
 
-  bodyEl.classList.remove('translating-state');
+    // Trigger Translation
+    // Limit text length more aggressively if needed, but 2000 is usually fine.
+    const textToTranslate = bodyText.substring(0, 3000);
+    const translation = await translateWithGemini(textToTranslate, STATE.geminiKey);
 
-  if (translation.includes("Error")) {
-    bodyEl.style.color = '#ff7b72'; // Reddish for error
-    bodyEl.textContent = translation;
-    // Auto-show original on error
-    origEl.classList.add('visible');
-    toggleBtn.textContent = 'Hide Original';
-  } else {
-    bodyEl.style.color = 'var(--text-primary)';
-    bodyEl.style.fontStyle = 'normal';
-    bodyEl.textContent = translation;
-  }
+    // Update UI with translation
+    const bodyEl = card.querySelector('.card-body');
+    const toggleBtn = card.querySelector('.toggle-original');
+    const origEl = card.querySelector('.original-text');
 
-  // Event Listeners
-  toggleBtn.onclick = () => {
-    origEl.classList.toggle('visible');
-    toggleBtn.textContent = origEl.classList.contains('visible') ? 'Hide Original' : 'Show Original';
-  };
+    bodyEl.classList.remove('translating-state');
 
-  const readBtn = card.querySelector('.mark-read');
-  if (readBtn) {
-    readBtn.onclick = async (e) => {
-      e.stopPropagation();
-      const success = await markAsRead(msgDetails.id);
-      if (success) {
-        card.classList.remove('unread');
-        readBtn.remove();
-      }
+    if (translation.includes("Error")) {
+      bodyEl.style.color = '#ff7b72'; // Reddish for error
+      bodyEl.textContent = translation;
+      // Auto-show original on error
+      origEl.classList.add('visible');
+      toggleBtn.textContent = 'Hide Original';
+      logToScreen(`Translation error for ${msgDetails.id}: ${translation}`, 'error');
+    } else {
+      bodyEl.style.color = 'var(--text-primary)';
+      bodyEl.style.fontStyle = 'normal';
+      bodyEl.textContent = translation;
+    }
+
+    // Event Listeners
+    toggleBtn.onclick = () => {
+      origEl.classList.toggle('visible');
+      toggleBtn.textContent = origEl.classList.contains('visible') ? 'Hide Original' : 'Show Original';
     };
+
+    const readBtn = card.querySelector('.mark-read');
+    if (readBtn) {
+      readBtn.onclick = async (e) => {
+        e.stopPropagation();
+        const success = await markAsRead(msgDetails.id);
+        if (success) {
+          card.classList.remove('unread');
+          readBtn.remove();
+        }
+      };
+    }
+  } catch (e) {
+    logToScreen(`Error rendering email ${msgDetails.id}: ${e.message}`, 'error');
+    console.error(e);
   }
 }
 
@@ -199,23 +245,30 @@ async function loadEmails() {
   const loadingEl = document.querySelector('.loading-state');
   if (loadingEl) loadingEl.textContent = 'Loading emails...';
 
+  logToScreen("Fetching emails list...", 'info');
+
   try {
     const listResp = await listBloombergEmails(STATE.nextPageToken);
+
     if (listResp && listResp.messages) {
+      logToScreen(`Found ${listResp.messages.length} emails. Fetching details...`, 'info');
       STATE.nextPageToken = listResp.nextPageToken;
 
-      // Fetch details in parallel? Sequential for stability first.
-      // 30 emails is small, but maybe batch 3 at a time.
+      // Fetch details
       for (const msg of listResp.messages) {
+        logToScreen(`Fetching detail for ${msg.id}`, 'info');
         const details = await getEmailDetails(msg.id);
         if (details) await renderEmail(details);
+        else logToScreen(`Failed to get details for ${msg.id}`, 'error');
       }
     } else {
+      logToScreen("No messages found in list response.", 'warn');
       if (document.querySelectorAll('.email-card').length === 0) {
-        loadingEl.textContent = "No Bloomberg emails found.";
+        if (loadingEl) loadingEl.textContent = "No Bloomberg emails found.";
       }
     }
   } catch (e) {
+    logToScreen(`Critical Error loading emails: ${e.message}`, 'error');
     console.error(e);
     if (loadingEl) loadingEl.textContent = "Error loading emails.";
   } finally {
@@ -242,10 +295,15 @@ function waitForGlobal(name, timeout = 10000) {
 }
 
 async function initApp() {
+  createDebugConsole();
+  logToScreen("App Initializing...", 'info');
+
   // Inject Scripts logic
   window.handleGoogleAuth = () => {
+    logToScreen("Auth button clicked", 'info');
     handleAuthClick(async () => {
       document.getElementById('auth-status').textContent = 'Connected';
+      logToScreen("Auth successful, starting load...", 'info');
       await loadEmails();
     });
   };
@@ -263,11 +321,14 @@ async function initApp() {
     authStatus.textContent = "";
     // Connect Google button
     const btn = document.createElement('button');
-    btn.textContent = 'Sign In';
+    btn.textContent = 'Sign In / Connect';
     btn.className = 'btn-text';
     btn.onclick = window.handleGoogleAuth;
     authStatus.appendChild(btn);
+    logToScreen("Scripts loaded. Ready for Sign In.", 'info');
+
   } catch (e) {
+    logToScreen(`Init Error: ${e}`, 'error');
     console.error(e);
     alert("Error loading Google Scripts. Check connection.");
   }
