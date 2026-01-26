@@ -1,42 +1,42 @@
-# LOGIRIS News Aggregator - System Specification
+# LOGIRIS News Aggregator - システム仕様書
 
-## Overview
-A lightweight, browser-based news aggregator designed specifically for reading Bloomberg newsletters efficiently. The application fetches unread emails directly from the user's Gmail account, filters them by recency, and displays them in a streamlined, distraction-free interface.
+## 概要
+Bloombergのニュースレターを効率的に読むために設計された、軽量なブラウザベースのニュースアグリゲーターです。ユーザーのGmailアカウントから未読メールを直接取得し、鮮度（48時間以内）でフィルタリングを行い、無駄のないインターフェースで表示します。
 
-## Core Features
+## コア機能
 
-### 1. Data Source & Filtering
-- **Source**: Connects to Gmail API using Google OAuth 2.0.
-- **Filter Query**: `from:bloomberg.com is:unread newer_than:2d`
-- **Logic**:
-  - Fetches only **unread** emails from the last **48 hours**.
-  - **Double-check**: client-side validation ensures strictly only `UNREAD` labeled emails are shown.
-- **Sorting**: **Oldest first** (Chronological order) to follow the news timeline.
+### 1. データソースとフィルタリング
+- **接続先**: Google OAuth 2.0 を使用して Gmail API に接続。
+- **検索クエリ**: `from:bloomberg.com is:unread newer_than:2d`
+- **ロジック**:
+  - 過去**48時間以内**の**未読**メールのみを取得。
+  - **ダブルチェック**: クライアント側でもメールが `UNREAD` ラベルを持っているか厳格に確認し、既読メールの混入を防ぐ。
+- **並び順**: **古い順**（時系列順）で表示し、ニュースの流れを追いやすくする。
 
-### 2. User Interface
-- **Header**:
-  - Minimalist design with white background.
-  - "LOGIRIS" logo centered/left-aligned.
-  - Height optimized for maximum content area.
-- **Email List**:
-  - continuous vertical stream.
-  - **Counters**: Displays standard index (e.g., `1/20`) for progress tracking.
-- **Email Card**:
-  - **Unread Indicator**: Distinct **Blue Vertical Line** on the left edge.
-  - **Meta Data**: Date/Time, Sender, Counter.
-  - **Content**: Renders raw HTML from the email source (tables, images preserved).
-- **Navigation**:
-  - **Instant Scroll**: "▼" button (and Space/PageDown keys) jumps 80% screen height instantly (no animation) for rapid skimming.
-- **Actions**:
-  - **Mark as Read**: Button to archive/mark read on Gmail server and remove from the current view.
+### 2. ユーザーインターフェース (UI)
+- **ヘッダー**:
+  - 白背景のシンプルなデザイン。
+  - "LOGIRIS" ロゴを配置。
+  - 高さを最小限に抑え、コンテンツ領域を最大化。
+- **メールリスト**:
+  - 連続した縦スクロールのストリーム形式。
+  - **カウンター**: 現在位置と総数を表示（例: `1/20`）し、進捗を可視化。
+- **メールカード**:
+  - **未読インジケーター**: カード左端の**青い縦ライン**で未読状態を明示（※デザイン変更後も維持）。
+  - **メタデータ**: 日時、送信者、カウンター。
+  - **コンテンツ**: メールのHTMLをそのままレンダリング（表や画像を維持）。
+- **ナビゲーション**:
+  - **インスタントスクロール**: 「▼」ボタン（および Space/PageDown キー）で、アニメーションなしで即座に画面80%分スクロール。速読に最適化。
+- **アクション**:
+  - **既読ボタン**: Gmailサーバー上で既読（アーカイブ）にし、現在のビューから削除する。
 
-### 3. Technical Stack
-- **Frontend**: Vanilla JavaScript (ES6+), CSS3.
-- **Auth**: Google Identity Services (GIS) / GAPI.
-- **Hosting**: GitHub Pages.
-- **Deployment**: Automated via GitHub Actions (CD).
+### 3. 技術スタック
+- **フロントエンド**: Vanilla JavaScript (ES6+), CSS3.
+- **認証**: Google Identity Services (GIS) / GAPI.
+- **ホスティング**: GitHub Pages.
+- **デプロイ**: GitHub Actions (CD) による自動化.
 
-## Planned Improvements (Next Sprint)
-- **Full Width Layout**: Expand container from 900px to `100%` viewport width.
-- **Content Zoom**: Apply `zoom: 1.5` (or equivalent) to email bodies to maximize readability of fixed-width HTML emails.
-- **Minimal Margins**: Reduce card padding while **preserving the Blue Unread Line**.
+## 今後の改善計画 (Phase 2)
+- **画面幅の開放**: 現在の `900px` 制限を解除し、ビューポート幅 `100%` に拡張する。
+- **コンテンツの強制ズーム**: CSS `zoom: 1.5` 等を使用し、HTMLメールの本文を強制的に拡大表示して可読性を高める。
+- **余白の最小化**: カードのパディングを減らしつつ、**左端の青い未読ラインは維持する**。
