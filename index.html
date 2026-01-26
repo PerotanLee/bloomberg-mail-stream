@@ -1,36 +1,39 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Bloomberg Stream</title>
-    <link rel="stylesheet" href="./src/style.css">
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Google API Client -->
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-  </head>
-  <body class="dark-theme">
-    <div id="app">
-      <header class="app-header">
-        <h1>Bloomberg Stream</h1>
-        <div id="auth-status"></div>
-      </header>
-      
-      <main id="stream-container" class="stream-container">
-        <!-- Emails will be injected here -->
-        <div class="loading-state">
-          <p>Connecting to Gmail...</p>
-        </div>
-      </main>
 
-      <div class="fab-container">
-        <button id="next-btn" class="fab-btn" aria-label="Next Page">
-          ▼
-        </button>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bloomberg Stream</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google API Client -->
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+
+<body class="dark-theme">
+  <div id="app">
+    <header class="app-header">
+      <img src="/header-logo.png" alt="LOGIRIS" class="app-logo">
+      <div id="auth-status"></div>
+    </header>
+
+    <main id="stream-container" class="stream-container">
+      <!-- Emails will be injected here -->
+      <div class="loading-state">
+        <p>Connecting to Gmail...</p>
       </div>
+    </main>
+
+    <div class="fab-container">
+      <button id="next-btn" class="fab-btn" aria-label="Next Page">
+        ▼
+      </button>
     </div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

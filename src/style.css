@@ -25,31 +25,33 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(13, 17, 23, 0.85);
-  backdrop-filter: blur(12px);
+  background: #ffffff;
   border-bottom: 1px solid var(--card-border);
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.app-logo {
+  height: 40px;
+  width: auto;
+  display: block;
 }
 
 .app-header h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--accent-color);
+  display: none;
 }
 
 /* Container */
 .stream-container {
   padding: 10px;
   max-width: 900px;
-  /* Increased from 600px */
   margin: 0 auto;
   min-height: 100vh;
-  padding-bottom: 100px;
-  /* Space for FAB and Debug */
+  padding-bottom: 80px;
+  /* Space for FAB only */
 }
 
 /* Email Card */
@@ -63,7 +65,7 @@ body {
   position: relative;
   overflow: hidden;
   overflow-x: auto;
-  /* Allow scrolling if email is very wide */
+  /* Allow scrolling */
 }
 
 .email-card.unread {
@@ -97,17 +99,15 @@ body {
   /* Preserve formatting */
 }
 
-.original-text {
-  display: none;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--card-border);
-  font-size: 13px;
-  color: var(--text-secondary);
+.email-content-view {
+  margin-top: 10px;
+  font-size: 14px;
+  /* Standardize */
 }
 
-.original-text.visible {
-  display: block;
+/* Adjust nested tables in email content */
+.email-content-view table {
+  max-width: 100%;
 }
 
 /* Actions in Card */
@@ -133,12 +133,16 @@ body {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  /* Slightly to the right for thumb logic, or center? User said "screen bottom" */
-  left: 0;
+  /* left: 0; Removing center alignment to keep it right aligned which works better typically, unless user insists on center. */
   display: flex;
-  justify-content: center;
-  /* Center it for generic mobile usage */
+  justify-content: flex-end;
   pointer-events: none;
+}
+
+/* Override container for better positioning if needed, keep simple */
+.fab-container {
+  right: 20px;
+  bottom: 20px;
 }
 
 .fab-btn {
@@ -167,40 +171,4 @@ body {
   text-align: center;
   color: var(--text-secondary);
   margin-top: 40px;
-}
-
-/* Debug Console */
-#debug-console {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 200px;
-  background: rgba(0, 0, 0, 0.9);
-  color: #00ff00;
-  font-family: monospace;
-  font-size: 11px;
-  overflow-y: auto;
-  padding: 10px;
-  z-index: 9999;
-  border-top: 2px solid #333;
-}
-
-.log-entry {
-  margin-bottom: 2px;
-  border-bottom: 1px solid #222;
-  word-break: break-all;
-}
-
-.log-error {
-  color: #ff5555;
-  font-weight: bold;
-}
-
-.log-info {
-  color: #88ccff;
-}
-
-.log-warn {
-  color: #ffbf00;
 }

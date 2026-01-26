@@ -2,7 +2,6 @@
 import './style.css';
 import { gapiLoaded, gisLoaded, handleAuthClick, listBloombergEmails, getEmailDetails, markAsRead } from './gmail.js';
 
-
 // Configuration State
 const STATE = {
   clientId: localStorage.getItem('bloomberg_client_id') || '',
@@ -42,7 +41,6 @@ function showSettingsModal() {
 
   document.getElementById('save-settings').onclick = () => {
     const cid = document.getElementById('inp-client-id').value.trim();
-
     if (cid) {
       localStorage.setItem('bloomberg_client_id', cid);
       STATE.clientId = cid;
@@ -54,33 +52,6 @@ function showSettingsModal() {
   };
 }
 
-// --- Debugging ---
-function createDebugConsole() {
-  if (document.getElementById('debug-console')) return;
-  const con = document.createElement('div');
-  con.id = 'debug-console';
-  document.body.appendChild(con);
-  logToScreen("Debug Console Initialized", "info");
-}
-
-function logToScreen(msg, type = 'info') {
-  console.log(`[${type.toUpperCase()}] ${msg}`); // Keep browser console
-  const con = document.getElementById('debug-console');
-  if (!con) return;
-
-  // Auto-scroll
-  const entry = document.createElement('div');
-  entry.className = `log-entry log-${type}`;
-  entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  con.appendChild(entry);
-  con.scrollTop = con.scrollHeight;
-}
-
-// Override global console for convenience (optional, but let's stick to explicit caching)
-window.onerror = function (msg, url, line) {
-  logToScreen(`Global Error: ${msg} @ ${line}`, 'error');
-};
-
 // --- Email Processing ---
 function decodeUrlSafeBase64(data) {
   if (!data) return '';
@@ -89,7 +60,7 @@ function decodeUrlSafeBase64(data) {
       return decodeURIComponent(escape(window.atob(str)));
     } catch (e) {
       console.warn("Base64 Decode Error", e);
-      return window.atob(str); // best effort
+      return window.atob(str);
     }
   };
   return customAtob(data.replace(/-/g, '+').replace(/_/g, '/'));
@@ -98,8 +69,6 @@ function decodeUrlSafeBase64(data) {
 function extractBodyData(payload) {
   let textBody = '';
   let htmlBody = '';
-
-  logToScreen(`Extracting body for msg... Parts: ${payload.parts ? payload.parts.length : '0'}`, 'info');
 
   const traverse = (nodes) => {
     for (const node of nodes) {
@@ -116,26 +85,19 @@ function extractBodyData(payload) {
   if (payload.parts) {
     traverse(payload.parts);
   } else {
-    // Single part message
+    // Single part
     if (payload.body && payload.body.data) {
       if (payload.mimeType === 'text/html') htmlBody = decodeUrlSafeBase64(payload.body.data);
       else textBody = decodeUrlSafeBase64(payload.body.data);
     }
   }
 
-  // If no text body, fallback to stripping html for the "text" version (for translation)
-  if (!textBody && htmlBody) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = htmlBody;
-    textBody = tmp.textContent || tmp.innerText || "";
+  // Fallback html
+  if (!htmlBody && textBody) {
+    htmlBody = `<pre>${textBody}</pre>`;
   }
 
-  if (!textBody.trim()) textBody = payload.snippet || "";
-
-  return {
-    text: textBody.trim(),
-    html: htmlBody || textBody || "" // Fallback html to text if no html
-  };
+  return { html: htmlBody || payload.snippet || "" };
 }
 
 function getHeader(headers, name) {
@@ -152,16 +114,12 @@ async function renderEmail(msgDetails) {
     const date = new Date(parseInt(msgDetails.internalDate) || dateStr);
     const isUnread = msgDetails.labelIds.includes('UNREAD');
 
-    logToScreen(`Rendering: ${subject}`, 'info');
+    const { html: bodyHtml } = extractBodyData(msgDetails.payload);
 
-    const { text: bodyText, html: bodyHtml } = extractBodyData(msgDetails.payload);
-
-    // Card Container
     const card = document.createElement('div');
     card.className = `email-card ${isUnread ? 'unread' : ''}`;
     card.id = `card-${msgDetails.id}`;
 
-    // Render
     card.innerHTML = `
         <div class="card-meta">
           <span>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>
@@ -174,26 +132,18 @@ async function renderEmail(msgDetails) {
         </div>
       `;
 
-    // Inject HTML safely
-    // We use a shadow root or just direct injection? pure injection is fine for user's own emails usually.
-    // But style isolation is better. For now direct injection but with overflow handling.
     const contentDiv = card.querySelector('.email-content-view');
     contentDiv.innerHTML = bodyHtml;
 
-    // Basic style reset for the email content to not break dark mode completely, or keep as is?
-    // Usually users want original look. We leave it as is, but background might need white if email expects it.
-    // Force white background for email content?
+    // Basic styling for content safety
     contentDiv.style.backgroundColor = '#ffffff';
     contentDiv.style.color = '#000000';
-    contentDiv.style.padding = '10px';
+    contentDiv.style.padding = '8px';
     contentDiv.style.borderRadius = '4px';
-    contentDiv.style.overflowX = 'auto';
+    contentDiv.style.overflowX = 'auto'; // ensure tables scroll
 
     streamContainer.appendChild(card);
 
-    // No translation calls
-
-    // Mark as Read Listener
     const readBtn = card.querySelector('.mark-read');
     if (readBtn) {
       readBtn.onclick = async (e) => {
@@ -206,7 +156,6 @@ async function renderEmail(msgDetails) {
       };
     }
   } catch (e) {
-    logToScreen(`Error rendering email ${msgDetails.id}: ${e.message}`, 'error');
     console.error(e);
   }
 }
@@ -218,30 +167,35 @@ async function loadEmails() {
   const loadingEl = document.querySelector('.loading-state');
   if (loadingEl) loadingEl.textContent = 'Loading emails...';
 
-  logToScreen("Fetching emails list...", 'info');
-
   try {
+    // 1. Fetch List (Query: from:bloomberg.com is:unread newer_than:2d)
     const listResp = await listBloombergEmails(STATE.nextPageToken);
 
     if (listResp && listResp.messages) {
-      logToScreen(`Found ${listResp.messages.length} emails. Fetching details...`, 'info');
-      STATE.nextPageToken = listResp.nextPageToken;
+      // Pagination logic roughly ignored for sorting requirement within batch.
+      // STATE.nextPageToken = listResp.nextPageToken; 
 
-      // Fetch details
-      for (const msg of listResp.messages) {
-        logToScreen(`Fetching detail for ${msg.id}`, 'info');
-        const details = await getEmailDetails(msg.id);
-        if (details) await renderEmail(details);
-        else logToScreen(`Failed to get details for ${msg.id}`, 'error');
+      const messages = listResp.messages;
+      const detailsPromises = messages.map(msg => getEmailDetails(msg.id));
+      const details = await Promise.all(detailsPromises);
+
+      const validDetails = details.filter(d => d);
+
+      // Sort Oldest -> Newest (Ascending internalDate)
+      validDetails.sort((a, b) => {
+        return parseInt(a.internalDate) - parseInt(b.internalDate);
+      });
+
+      for (const d of validDetails) {
+        await renderEmail(d);
       }
+
     } else {
-      logToScreen("No messages found in list response.", 'warn');
       if (document.querySelectorAll('.email-card').length === 0) {
         if (loadingEl) loadingEl.textContent = "No Bloomberg emails found.";
       }
     }
   } catch (e) {
-    logToScreen(`Critical Error loading emails: ${e.message}`, 'error');
     console.error(e);
     if (loadingEl) loadingEl.textContent = "Error loading emails.";
   } finally {
@@ -268,15 +222,9 @@ function waitForGlobal(name, timeout = 10000) {
 }
 
 async function initApp() {
-  createDebugConsole();
-  logToScreen("App Initializing...", 'info');
-
-  // Inject Scripts logic
   window.handleGoogleAuth = () => {
-    logToScreen("Auth button clicked", 'info');
     handleAuthClick(async () => {
       document.getElementById('auth-status').textContent = 'Connected';
-      logToScreen("Auth successful, starting load...", 'info');
       await loadEmails();
     });
   };
@@ -292,23 +240,20 @@ async function initApp() {
     gisLoaded(STATE.clientId);
 
     authStatus.textContent = "";
-    // Connect Google button
     const btn = document.createElement('button');
     btn.textContent = 'Sign In / Connect';
     btn.className = 'btn-text';
     btn.onclick = window.handleGoogleAuth;
     authStatus.appendChild(btn);
-    logToScreen("Scripts loaded. Ready for Sign In.", 'info');
 
   } catch (e) {
-    logToScreen(`Init Error: ${e}`, 'error');
     console.error(e);
     alert("Error loading Google Scripts. Check connection.");
   }
 }
 
 // Main logic
-if (!STATE.clientId || !STATE.geminiKey) {
+if (!STATE.clientId) {
   showSettingsModal();
 } else {
   initApp();
@@ -321,10 +266,9 @@ nextBtn.onclick = () => {
     behavior: 'smooth'
   });
 
-  // Check if near bottom to load more
-  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
-    loadEmails();
-  }
+  // Logic for load more is removed/complicated by sorting requirement (scrolling down to load *newer* emails vs infinite scroll usually loads *older*).
+  // With "Oldest First", the bottom of the list is the "Newest".
+  // So typically we load everything involved in the sort range at once.
 };
 
 window.addEventListener('keydown', (e) => {
