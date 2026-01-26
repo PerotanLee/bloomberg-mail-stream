@@ -214,17 +214,20 @@ async function loadEmails() {
 }
 
 // --- Initialization ---
-function waitForGlobal(name, timeout = 10000) {
+function waitForGlobal(name, timeout = 30000) { // Increased to 30s
+  console.log(`Waiting for global: ${name}...`);
   return new Promise((resolve, reject) => {
     if (window[name]) return resolve();
     const interval = setInterval(() => {
       if (window[name]) {
+        console.log(`Global found: ${name}`);
         clearInterval(interval);
         resolve();
       }
-    }, 100);
+    }, 200);
     setTimeout(() => {
       clearInterval(interval);
+      console.error(`Timeout waiting for ${name}`);
       reject(`Timeout waiting for ${name}`);
     }, timeout);
   });
@@ -263,8 +266,13 @@ async function initApp() {
     }
 
   } catch (e) {
-    console.error(e);
-    alert("Error loading Google Scripts. Check connection.");
+    console.error("Initialization Error:", e);
+    const authStatus = document.getElementById('auth-status');
+    authStatus.innerHTML = `
+      <div style="color: #ff7b72; font-size: 12px; text-align: right;">
+        Loading Error. <button onclick="location.reload()" style="background:none; border:1px solid #ff7b72; color:#ff7b72; border-radius:4px; cursor:pointer;">Retry</button>
+      </div>
+    `;
   }
 }
 

@@ -106,9 +106,23 @@ body {
   -moz-transform-origin: 0 0;
   transform: scale(1.2);
   transform-origin: 0 0;
-  width: 100%;
+  width: 100% !important;
+  max-width: 100vw !important;
   box-sizing: border-box;
   overflow-x: auto;
+}
+
+/* Responsive Zoom for Narrow Screens (Galaxy Fold Sub-screen etc.) */
+@media (max-width: 450px) {
+  .email-content-view {
+    zoom: 1.0;
+    -moz-transform: scale(1.0);
+    transform: scale(1.0);
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
 }
 
 .email-content-view table,
