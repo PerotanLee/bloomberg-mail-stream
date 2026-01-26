@@ -214,22 +214,22 @@ async function loadEmails() {
 }
 
 // --- Initialization ---
-function waitForGlobal(name, timeout = 30000) { // Increased to 30s
-  console.log(`Waiting for global: ${name}...`);
+function loadScript(src) {
   return new Promise((resolve, reject) => {
-    if (window[name]) return resolve();
-    const interval = setInterval(() => {
-      if (window[name]) {
-        console.log(`Global found: ${name}`);
-        clearInterval(interval);
-        resolve();
-      }
-    }, 200);
-    setTimeout(() => {
-      clearInterval(interval);
-      console.error(`Timeout waiting for ${name}`);
-      reject(`Timeout waiting for ${name}`);
-    }, timeout);
+    console.log(`Loading script: ${src}`);
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      console.log(`Script loaded: ${src}`);
+      resolve();
+    };
+    script.onerror = () => {
+      console.error(`Script load error: ${src}`);
+      reject(new Error(`Failed to load script: ${src}`));
+    };
+    document.head.appendChild(script);
   });
 }
 
@@ -243,12 +243,17 @@ async function initApp() {
 
   try {
     const authStatus = document.getElementById('auth-status');
-    authStatus.textContent = "Loading scripts...";
+    authStatus.textContent = "Initializing Google Services...";
 
-    await waitForGlobal('gapi');
-    await waitForGlobal('google');
+    // 1. Load Scripts sequentially
+    await loadScript('https://apis.google.com/js/api.js');
+    await loadScript('https://accounts.google.com/gsi/client');
 
-    gapiLoaded();
+    // 2. Initialize GAPI
+    await new Promise((resolve) => gapi.load('client', resolve));
+    await gapiLoaded();
+
+    // 3. Initialize GIS
     gisLoaded(STATE.clientId);
 
     authStatus.textContent = "";

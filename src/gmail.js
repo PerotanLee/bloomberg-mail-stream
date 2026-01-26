@@ -8,21 +8,19 @@ let gisInited = false;
 let userCallback = null;
 
 // Initialize gapi
-export function gapiLoaded() {
-    gapi.load('client', async () => {
-        await gapi.client.init({
-            discoveryDocs: [GMAIL_API_DISCOVERY_DOC],
-        });
-        gapiInited = true;
-
-        // Restore token if exists
-        const savedToken = localStorage.getItem('gmail_access_token');
-        if (savedToken) {
-            gapi.client.setToken(JSON.parse(savedToken));
-        }
-
-        checkAuth();
+export async function gapiLoaded() {
+    await gapi.client.init({
+        discoveryDocs: [GMAIL_API_DISCOVERY_DOC],
     });
+    gapiInited = true;
+
+    // Restore token if exists
+    const savedToken = localStorage.getItem('gmail_access_token');
+    if (savedToken) {
+        gapi.client.setToken(JSON.parse(savedToken));
+    }
+
+    checkAuth();
 }
 
 // Initialize GIS
