@@ -2,7 +2,7 @@
   "name": "Logiris Reader",
   "short_name": "Logiris",
   "start_url": ".",
-  "display": "minimal-ui",
+  "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
   "description": "Logiris Reader - Bloomberg Email Aggregator",
