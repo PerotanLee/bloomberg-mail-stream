@@ -108,10 +108,17 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Responsive Zoom for extremely Narrow Screens (Galaxy Fold Sub-screen etc. <= 350px) */
+/* --- Mobile/Tablet Device Specific Zoom (Option 1) --- */
+/* Target Galaxy Fold 7 and other physical mobile devices */
+.is-mobile-view .email-content-view {
+  zoom: 1.5;
+  /* High enough to fill typical newsletter side margins */
+}
+
 @media (max-width: 350px) {
-  .email-content-view {
-    zoom: 0.95;
+  .is-mobile-view .email-content-view {
+    zoom: 1.7;
+    /* Even higher zoom for extremely narrow sub-screens */
   }
 }
 
@@ -122,14 +129,12 @@ body {
     transform-origin: 0 0;
   }
 
-  @media (max-width: 350px) {
-    .email-content-view {
-      transform: scale(0.95);
-    }
+  .is-mobile-view .email-content-view {
+    transform: scale(1.5);
   }
 }
 
-/* Scaling removed from 450px threshold as we moved to a more granular 350px logic above */
+/* UI Adjustments for small screens */
 @media (max-width: 450px) {
   .card-title {
     font-size: 16px;

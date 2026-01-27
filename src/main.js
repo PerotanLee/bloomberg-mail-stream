@@ -233,7 +233,20 @@ function loadScript(src) {
   });
 }
 
+// --- Device Detection ---
+function checkDeviceType() {
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  // Simple check for mobile/tablet via user agent as fallback/complement
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isTouchDevice || isMobileUA) {
+    document.body.classList.add('is-mobile-view');
+    console.log("Mobile/Tablet device detected. Applying adaptive zoom styles.");
+  }
+}
+
 async function initApp() {
+  checkDeviceType(); // Detect device on init
   window.handleGoogleAuth = () => {
     handleAuthClick(async () => {
       document.getElementById('auth-status').textContent = 'Connected';
