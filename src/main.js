@@ -238,10 +238,12 @@ function setupNavigation() {
     if (cardId) {
       const target = document.getElementById(cardId);
       if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // Account for sticky header
-        window.scrollBy(0, -60);
+        // Immediate jump often more reliable on mobile components
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        console.log(`Jumped to: ${cardId}`);
       }
+      // Reset select so we can jump back to the same email if needed
+      setTimeout(() => { nav.value = ""; }, 100);
     }
   });
 }

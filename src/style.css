@@ -99,6 +99,8 @@ body {
   position: relative;
   /* overflow: hidden;  Removing this to prevent clipping of zoomed content */
   box-sizing: border-box;
+  scroll-margin-top: 60px;
+  /* Space for sticky header when jumping */
 }
 
 .email-card.unread {
