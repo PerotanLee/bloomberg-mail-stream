@@ -397,7 +397,18 @@ let startY = 0;
 let initialTop = 0;
 const fabContainer = document.querySelector('.fab-container');
 
+nextBtn.oncontextmenu = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  return false;
+};
+
 nextBtn.onpointerdown = (e) => {
+  // Only drag on mobile
+  if (!document.body.classList.contains('is-mobile-view')) {
+    isDragging = false;
+    return;
+  }
   isDragging = false;
   startY = e.clientY;
   const rect = fabContainer.getBoundingClientRect();
