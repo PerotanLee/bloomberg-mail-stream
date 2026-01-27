@@ -8,13 +8,13 @@
   "description": "Logiris Reader - Bloomberg Email Aggregator",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "favicon.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/favicon.png",
+      "src": "favicon.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "maskable"
