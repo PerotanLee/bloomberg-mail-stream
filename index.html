@@ -12,8 +12,23 @@
 <body class="dark-theme">
   <div id="app">
     <header class="app-header">
-      <img src="/header-logo.png" alt="LOGIRIS" class="app-logo">
-      <div id="auth-status"></div>
+      <div class="header-left">
+        <img src="/header-logo.png" alt="LOGIRIS" class="app-logo">
+        <select id="email-nav" class="header-nav" aria-label="Select Email">
+          <option value="">Jump to email...</option>
+        </select>
+      </div>
+      <div class="header-right">
+        <select id="zoom-ctrl" class="header-zoom" aria-label="Manual Zoom">
+          <option value="1.0">Zoom: 100%</option>
+          <option value="1.1" selected>Zoom: 110%</option>
+          <option value="1.2">Zoom: 120%</option>
+          <option value="1.4">Zoom: 140%</option>
+          <option value="1.7">Zoom: 170%</option>
+          <option value="2.0">Zoom: 200%</option>
+        </select>
+        <div id="auth-status"></div>
+      </div>
     </header>
 
     <main id="stream-container" class="stream-container">

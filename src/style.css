@@ -7,6 +7,8 @@
   --card-border: #30363d;
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --fab-size: 56px;
+  --current-zoom: 1.1;
+  /* Default zoom value */
 }
 
 body {
@@ -27,11 +29,44 @@ body {
   z-index: 100;
   background: #ffffff;
   border-bottom: 1px solid var(--card-border);
-  padding: 4px 16px;
+  padding: 4px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+.header-nav {
+  max-width: 150px;
+  background: #f1f3f4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  padding: 4px;
+  color: #333;
+}
+
+.header-zoom {
+  background: #f1f3f4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  padding: 4px;
+  color: #333;
 }
 
 .app-logo {
@@ -100,37 +135,30 @@ body {
 .email-content-view {
   margin-top: 8px;
   font-size: 14px;
-  zoom: 1.1;
-  /* Standardized zoom. Removed redundant transform scale to fix clipping */
+  zoom: var(--current-zoom);
+  /* Managed via JavaScript or CSS variables */
   width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- Mobile/Tablet Device Specific Zoom (Option 1) --- */
-/* Target Galaxy Fold 7 and other physical mobile devices */
-.is-mobile-view .email-content-view {
-  zoom: 1.5;
-  /* High enough to fill typical newsletter side margins */
+/* Base Mobile/Tablet Zoom Adjustment - overridden by Manual Zoom if changed */
+.is-mobile-view {
+  --current-zoom: 1.5;
 }
 
 @media (max-width: 350px) {
-  .is-mobile-view .email-content-view {
-    zoom: 1.7;
-    /* Even higher zoom for extremely narrow sub-screens */
+  .is-mobile-view {
+    --current-zoom: 1.7;
   }
 }
 
 /* Fallback for browsers that don't support zoom (like Firefox) */
 @supports not (zoom: 1.1) {
   .email-content-view {
-    transform: scale(1.1);
+    transform: scale(var(--current-zoom));
     transform-origin: 0 0;
-  }
-
-  .is-mobile-view .email-content-view {
-    transform: scale(1.5);
   }
 }
 

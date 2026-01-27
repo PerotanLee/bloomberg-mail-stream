@@ -121,6 +121,18 @@ async function renderEmail(msgDetails, index, total) {
     card.className = `email-card ${isUnread ? 'unread' : ''}`;
     card.id = `card-${msgDetails.id}`;
 
+    // Add to navigation dropdown
+    const nav = document.getElementById('email-nav');
+    if (nav) {
+      const option = document.createElement('option');
+      option.value = card.id;
+      // Clean up subject for short display
+      const shortSubject = subject.replace(/Australia Briefing:|Briefing:|Bloomberg|Japan/gi, '').trim();
+      const shortFrom = from.split('<')[0].replace(/"/g, '').trim();
+      option.textContent = `${shortFrom}: ${shortSubject}`;
+      nav.appendChild(option);
+    }
+
     // Index display: "1/20"
     const counterStr = (index !== undefined && total !== undefined) ? `${index + 1}/${total}` : '';
 
@@ -171,6 +183,10 @@ async function loadEmails() {
   const loadingEl = document.querySelector('.loading-state');
   if (loadingEl) loadingEl.textContent = 'Loading emails...';
 
+  // Clear navigation dropdown except for first item
+  const nav = document.getElementById('email-nav');
+  if (nav) nav.innerHTML = '<option value="">Jump to email...</option>';
+
   try {
     // 1. Fetch List (Query: from:bloomberg.com is:unread newer_than:2d)
     const listResp = await listBloombergEmails(STATE.nextPageToken);
@@ -213,6 +229,40 @@ async function loadEmails() {
   }
 }
 
+// --- Navigation & Zoom Controls ---
+function setupNavigation() {
+  const nav = document.getElementById('email-nav');
+  if (!nav) return;
+  nav.addEventListener('change', (e) => {
+    const cardId = e.target.value;
+    if (cardId) {
+      const target = document.getElementById(cardId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Account for sticky header
+        window.scrollBy(0, -60);
+      }
+    }
+  });
+}
+
+function setupZoom() {
+  const zoomCtrl = document.getElementById('zoom-ctrl');
+  if (!zoomCtrl) return;
+
+  // Initialize zoom value from current CSS state
+  const currentZoom = getComputedStyle(document.body).getPropertyValue('--current-zoom').trim();
+  if (currentZoom) {
+    zoomCtrl.value = parseFloat(currentZoom).toFixed(1);
+  }
+
+  zoomCtrl.addEventListener('change', (e) => {
+    const val = e.target.value;
+    document.body.style.setProperty('--current-zoom', val);
+    console.log(`Manual zoom set to: ${val}`);
+  });
+}
+
 // --- Initialization ---
 function loadScript(src) {
   return new Promise((resolve, reject) => {
@@ -247,6 +297,9 @@ function checkDeviceType() {
 
 async function initApp() {
   checkDeviceType(); // Detect device on init
+  setupNavigation();
+  setupZoom();
+
   window.handleGoogleAuth = () => {
     handleAuthClick(async () => {
       document.getElementById('auth-status').textContent = 'Connected';
