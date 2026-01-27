@@ -62,7 +62,7 @@ body {
   margin-bottom: 12px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden;  Removing this to prevent clipping of zoomed content */
   box-sizing: border-box;
 }
 
@@ -100,26 +100,37 @@ body {
 .email-content-view {
   margin-top: 8px;
   font-size: 14px;
-  zoom: 1.2;
-  /* Reduced from 1.5 to fit Fold 7 */
-  -moz-transform: scale(1.2);
-  -moz-transform-origin: 0 0;
-  transform: scale(1.2);
-  transform-origin: 0 0;
-  width: 100% !important;
-  max-width: 100vw !important;
+  zoom: 1.1;
+  /* Standardized zoom. Removed redundant transform scale to fix clipping */
+  width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Responsive Zoom for Narrow Screens (Galaxy Fold Sub-screen etc.) */
-@media (max-width: 450px) {
+/* Responsive Zoom for extremely Narrow Screens (Galaxy Fold Sub-screen etc. <= 350px) */
+@media (max-width: 350px) {
   .email-content-view {
-    zoom: 1.0;
-    -moz-transform: scale(1.0);
-    transform: scale(1.0);
+    zoom: 0.95;
+  }
+}
+
+/* Fallback for browsers that don't support zoom (like Firefox) */
+@supports not (zoom: 1.1) {
+  .email-content-view {
+    transform: scale(1.1);
+    transform-origin: 0 0;
   }
 
+  @media (max-width: 350px) {
+    .email-content-view {
+      transform: scale(0.95);
+    }
+  }
+}
+
+/* Scaling removed from 450px threshold as we moved to a more granular 350px logic above */
+@media (max-width: 450px) {
   .card-title {
     font-size: 16px;
   }
@@ -128,19 +139,20 @@ body {
 .email-content-view * {
   max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
 }
 
 .email-content-view table {
-  table-layout: fixed !important;
+  /* table-layout: fixed !important; Removed to allow natural table rendering */
   width: 100% !important;
 }
 
 .email-content-view td,
 .email-content-view th {
   min-width: 0 !important;
-  word-break: break-all !important;
+  word-break: normal !important;
+  /* Allow normal blooming tables to work */
 }
 
 .email-content-view img {
