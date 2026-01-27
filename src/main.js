@@ -393,7 +393,7 @@ if (!STATE.clientId) {
 // Page Down Logic (Instant Scroll)
 nextBtn.onclick = () => {
   window.scrollBy({
-    top: window.innerHeight * 0.8,
+    top: window.innerHeight * 0.9,
     behavior: 'auto' // Instant jump per request
   });
 };

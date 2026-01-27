@@ -237,15 +237,13 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(47, 129, 247, 0.1);
-  /* Ultra-Transparent */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  color: rgba(255, 255, 255, 0.5);
-  /* Semi-transparent glyph */
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(47, 129, 247, 0.05);
+  /* Extremely Transparent */
+  color: rgba(255, 255, 255, 0.3);
+  /* Fainter glyph */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   cursor: pointer;
   display: flex;
   align-items: center;
