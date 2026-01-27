@@ -425,6 +425,7 @@ nextBtn.onpointermove = (e) => {
     const boundedTop = Math.max(60, Math.min(window.innerHeight - 60, newTop));
     fabContainer.style.top = `${boundedTop}px`;
     fabContainer.style.bottom = 'auto'; // Break the default bottom if any
+    fabContainer.style.transform = 'none'; // Clear the centering transform during manual movement
   }
 };
 
