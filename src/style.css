@@ -303,3 +303,24 @@ body.is-mobile-view .fab-container {
   color: var(--text-secondary);
   margin-top: 40px;
 }
+
+/* Error state */
+.error-state {
+  text-align: center;
+  margin-top: 40px;
+  padding: 24px 16px;
+}
+.error-state .error-message {
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.error-state .error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.error-state .btn-primary {
+  min-width: 140px;
+}

@@ -2,6 +2,42 @@
 const GMAIL_API_DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest';
 const SCOPES = 'https://www.googleapis.com/auth/gmail.modify';
 
+/**
+ * Gmail API エラー（認証・ネットワーク・API 等を区別するため）
+ */
+export class GmailApiError extends Error {
+    constructor(code, message, original = null) {
+        super(message);
+        this.name = 'GmailApiError';
+        this.code = code; // 'auth' | 'network' | 'rate_limit' | 'server' | 'unknown'
+        this.original = original;
+    }
+}
+
+function normalizeApiError(err) {
+    const httpCode = err.result?.error?.code;
+    const apiMessage = err.result?.error?.message || err.message || '';
+    const isNetwork = !err.result && (err.message === 'Failed to fetch' || err.message?.includes('NetworkError'));
+    if (httpCode === 401) {
+        return new GmailApiError('auth', 'ログインの有効期限が切れています。再度サインインしてください。', err);
+    }
+    if (httpCode === 403) {
+        return new GmailApiError('rate_limit', apiMessage || 'アクセスが制限されています。しばらくしてからお試しください。', err);
+    }
+    if (httpCode >= 500) {
+        return new GmailApiError('server', 'Gmail のサーバーで問題が発生しています。しばらくしてからお試しください。', err);
+    }
+    if (isNetwork) {
+        return new GmailApiError('network', 'ネットワークに接続できません。接続を確認して再試行してください。', err);
+    }
+    return new GmailApiError('unknown', apiMessage || 'メールの取得に失敗しました。', err);
+}
+
+/** 保存済みトークンを削除（再サインインを促す場合に使用） */
+export function clearStoredToken() {
+    localStorage.removeItem('gmail_access_token');
+}
+
 let tokenClient;
 let gapiInited = false;
 let gisInited = false;
@@ -68,7 +104,7 @@ export async function listBloombergEmails(pageToken = null) {
         return response.result;
     } catch (err) {
         console.error('Execute error', err);
-        return null;
+        throw normalizeApiError(err);
     }
 }
 
@@ -82,7 +118,7 @@ export async function getEmailDetails(messageId) {
         return response.result;
     } catch (err) {
         console.error('Get details error', err);
-        return null;
+        throw normalizeApiError(err);
     }
 }
 

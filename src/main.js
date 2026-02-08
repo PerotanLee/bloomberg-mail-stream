@@ -1,6 +1,6 @@
 
 import './style.css';
-import { gapiLoaded, gisLoaded, handleAuthClick, listBloombergEmails, getEmailDetails, markAsRead, batchMarkAsRead } from './gmail.js';
+import { gapiLoaded, gisLoaded, handleAuthClick, listBloombergEmails, getEmailDetails, markAsRead, batchMarkAsRead, GmailApiError, clearStoredToken } from './gmail.js';
 
 // Configuration State
 const STATE = {
@@ -226,11 +226,50 @@ async function loadEmails() {
     }
   } catch (e) {
     console.error(e);
-    if (loadingEl) loadingEl.textContent = "Error loading emails.";
+    showLoadError(loadingEl, e);
   } finally {
     STATE.isLoading = false;
     if (loadingEl && document.querySelectorAll('.email-card').length > 0) loadingEl.remove();
   }
+}
+
+/** メール取得エラー時のメッセージと再試行・再ログイン用 UI を表示 */
+function showLoadError(container, error) {
+  if (!container) return;
+  const isAuthError = error instanceof GmailApiError && error.code === 'auth';
+  const message = error instanceof GmailApiError ? error.message : (error?.message || 'メールの取得に失敗しました。');
+  if (isAuthError) clearStoredToken();
+
+  container.innerHTML = `
+    <div class="error-state">
+      <p class="error-message">${escapeHtml(message)}</p>
+      <div class="error-actions">
+        ${isAuthError
+    ? '<button type="button" class="btn-primary" id="error-reauth-btn">再度サインイン</button>'
+    : '<button type="button" class="btn-primary" id="error-retry-btn">再試行</button>'
+}
+      </div>
+    </div>
+  `;
+
+  const btn = container.querySelector(isAuthError ? '#error-reauth-btn' : '#error-retry-btn');
+  if (btn) {
+    btn.onclick = () => {
+      if (isAuthError) {
+        container.innerHTML = '<p>Connecting to Gmail...</p>';
+        window.handleGoogleAuth?.();
+      } else {
+        container.innerHTML = '<p>Loading emails...</p>';
+        loadEmails();
+      }
+    };
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // --- Batch Actions ---
